@@ -1,0 +1,45 @@
+--docker-compose.yml--
+version: '3.7'
+
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: pinito6
+      POSTGRES_PASSWORD: pinito6
+      POSTGRES_DB: Antoagrariasdb
+    ports:
+      - "5432:5432"
+    networks:
+      - rstudio-net
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: pinito6
+    ports:
+      - "5050:80"
+    networks:
+      - rstudio-net
+    depends_on:
+      - postgres
+
+
+  rstudio:
+    image: rocker/rstudio:latest
+    ports:
+      - "8787:8787"
+    environment:
+      - PASSWORD=pinito6
+    networks:
+      - rstudio-net
+    depends_on:
+      - postgres
+
+
+networks:
+  rstudio-net:
+    driver: bridge
