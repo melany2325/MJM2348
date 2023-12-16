@@ -1,0 +1,120 @@
+--Nota: Al estar en la consola esta es la ruta/ubicación que muestra, aquí es donde digital el código (C:\Users\maria\AntoagrariasdbA>)
+docker exec -it antoagrariasdba-postgres-1 psql -U pinito6 -d Antoagrariasdb
+
+Nota: Al estar en la consola de PostgresSQL esta es la ruta/ubicación que muestra, aquí es donde digital el código (Antoagrariasdb=#)
+
+CREATE TABLE Cosecha(
+    ID_cosecha INT PRIMARY KEY,
+    cod_funcionario INT,
+    cantidad INT,
+    mes INT,
+    dia INT,
+    anio INT
+);
+
+
+CREATE TABLE Cultivo(
+    ID_cultivo INT PRIMARY KEY,
+    nombre VARCHAR(255),
+    ciclo_crecimiento INT,
+    ID_cosecha INT,
+    FOREIGN KEY (ID_cosecha) REFERENCES Cosecha(ID_cosecha)
+);
+
+CREATE TABLE Parcela(
+    ID_parcela INT PRIMARY KEY,
+    ubicacion VARCHAR(600),
+    tamaño INT,
+    tipo_suelo VARCHAR(255),
+    tecnica_suelo VARCHAR(255),
+    tecnica_riego VARCHAR(255),
+    mantenimiento VARCHAR(255),
+    propietario VARCHAR(255),
+    practica_A VARCHAR(255),
+    ID_cultivo INT,
+    FOREIGN KEY (ID_cultivo) REFERENCES Cultivo(ID_cultivo)
+);
+
+CREATE TABLE Sensor(
+    cod_sensor INT PRIMARY KEY,
+    datosclima_humedad VARCHAR(600),
+    datosclima_temperatura VARCHAR(600),
+    datosclima_precipitacion VARCHAR(600),
+    ID_parcela INT,
+    FOREIGN KEY (ID_parcela) REFERENCES Parcela(ID_parcela)
+);
+
+
+--CONSULTAS--
+
+-- 1. Cuál es la información del sensor del propietario María Rodriguez según la parcela que maneja.
+SELECT Sensor.*, Parcela.propietario
+FROM Sensor
+JOIN Parcela ON Sensor.ID_parcela = Parcela.ID_parcela
+WHERE Parcela.propietario = 'María Rodríguez';
+
+-- 2. tipo de suelo que tiene el cultivo Zanahoria.
+SELECT Parcela.tipo_suelo
+FROM Parcela
+JOIN Cultivo ON Parcela.ID_cultivo = Cultivo.ID_cultivo
+WHERE Cultivo.nombre = 'Zanahoria';
+
+-- 3. cual es el nombre del cultivo con la mayor cantidad cosechada.
+SELECT Cultivo.nombre
+FROM Cultivo
+JOIN Cosecha ON Cultivo.ID_cosecha = Cosecha.ID_cosecha
+ORDER BY Cosecha.cantidad DESC
+LIMIT 1;
+
+-- 4. el mes, dia y anio del sensor con temperatura de 27°C
+SELECT Cosecha.mes, Cosecha.dia, Cosecha.anio, Sensor.datosclima_temperatura
+FROM Cosecha
+LEFT JOIN Cultivo ON Cosecha.ID_cosecha = Cultivo.ID_cosecha
+LEFT JOIN Parcela ON Cultivo.ID_cultivo = Parcela.ID_cultivo
+LEFT JOIN Sensor ON Parcela.ID_parcela = Sensor.ID_parcela
+WHERE Sensor.datosclima_temperatura = '27°C';
+
+-- 5. Listar el nombre de los cultivos y sus prácticas de mantenimiento que sean excelente.
+SELECT Cultivo.nombre AS nombre_cultivo, Parcela.mantenimiento
+FROM Cultivo
+JOIN Parcela ON Cultivo.ID_cultivo = Parcela.ID_cultivo
+WHERE Parcela.mantenimiento = 'Excelente';
+
+-- 6. Tamaño de las parcelas con cultivos de Maíz, Pepino y Frijol
+SELECT Parcela.ID_parcela, Parcela.ubicacion, Parcela.tamaño, Cultivo.nombre AS cultivo
+FROM Parcela
+JOIN Cultivo ON Parcela.ID_cultivo = Cultivo.ID_cultivo
+WHERE Cultivo.nombre IN ('Maíz', 'Pepino', 'Frijol');
+
+--7. cual es tecnica de riego mas utilizada.
+SELECT 
+    Parcela.tecnica_riego AS Tecnica_Riego,
+    COUNT(*) AS Cantidad
+FROM Parcela 
+JOIN Cultivo on Parcela.ID_cultivo = Cultivo.ID_cultivo
+GROUP BY Parcela.tecnica_riego
+ORDER BY Cantidad DESC
+LIMIT 1;
+
+-- 8. muestre el registro de la parcela con mayor huemdad y el nombre de los cultivos en la parcela.
+SELECT Parcela.ID_parcela, Sensor.datosclima_humedad, Cultivo.nombre AS nombre_cultivo
+FROM Sensor
+JOIN Parcela ON Sensor.ID_parcela = Parcela.ID_parcela
+JOIN Cultivo ON Parcela.ID_cultivo = Cultivo.ID_cultivo
+WHERE Sensor.datosclima_humedad = (
+    SELECT MAX(datosclima_humedad) FROM Sensor
+)
+LIMIT 1;
+
+-- 9. Mostrar las parcelas que utilizan la práctica agrícola "Rotación de cultivos" y que tienen un ciclo de crecimiento de cultivo superior a 85 días
+SELECT Parcela.ID_parcela, Parcela.practica_a, Cultivo.ciclo_crecimiento
+FROM Parcela
+JOIN Cultivo ON Parcela.ID_cultivo = Cultivo.ID_cultivo
+WHERE Parcela.practica_a = 'Rotación de cultivos' AND Cultivo.ciclo_crecimiento > 85;
+
+
+-- 10. Encontrar los cultivos que tienen un ciclo de crecimiento superior a 100 días y fueron cultivados en parcelas con tecnica_riego 'Riego por goteo'
+SELECT cultivo.nombre,cultivo.ciclo_crecimiento, Parcela.tecnica_riego
+FROM Cultivo
+JOIN Parcela ON Cultivo.ID_cultivo = Parcela.ID_cultivo
+WHERE Cultivo.ciclo_crecimiento > 100 AND Parcela.tecnica_riego = 'Riego por goteo';
